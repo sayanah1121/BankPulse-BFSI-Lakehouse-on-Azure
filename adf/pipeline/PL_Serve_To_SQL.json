@@ -1,0 +1,97 @@
+{
+    "name": "PL_Serve_To_SQL",
+    "type": "Microsoft.DataFactory/factories/pipelines",
+    "properties": {
+        "description": "Serving Pipeline: Copies Gold dimensions, facts, and KPIs into Azure SQL serving schema",
+        "parameters": {
+            "batch_id": {
+                "type": "string"
+            }
+        },
+        "activities": [
+            {
+                "name": "Copy_KPI_NPA_To_SQL",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 2
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "ParquetSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": true
+                        }
+                    },
+                    "sink": {
+                        "type": "AzureSqlSink",
+                        "preCopyScript": "TRUNCATE TABLE gold.kpi_npa_metrics",
+                        "writeBehavior": "insert"
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "DS_Parquet_Landing",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "DirectoryPath": "gold/kpi_npa_metrics"
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "DS_SQL_Gold",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "TableName": "kpi_npa_metrics"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "Copy_KPI_Channel_To_SQL",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 2
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "ParquetSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": true
+                        }
+                    },
+                    "sink": {
+                        "type": "AzureSqlSink",
+                        "preCopyScript": "TRUNCATE TABLE gold.kpi_channel_performance",
+                        "writeBehavior": "insert"
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "DS_Parquet_Landing",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "DirectoryPath": "gold/kpi_channel_performance"
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "DS_SQL_Gold",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "TableName": "kpi_channel_performance"
+                        }
+                    }
+                ]
+            }
+        ],
+        "annotations": ["Serving", "PowerBI", "AzureSQL"]
+    }
+}

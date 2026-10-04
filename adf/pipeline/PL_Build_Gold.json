@@ -1,0 +1,39 @@
+{
+    "name": "PL_Build_Gold",
+    "type": "Microsoft.DataFactory/factories/pipelines",
+    "properties": {
+        "description": "Gold Layer Pipeline: Executes Databricks nb_gold_build to construct Star Schema dimensions, facts, and business KPIs",
+        "parameters": {
+            "batch_id": {
+                "type": "string"
+            }
+        },
+        "activities": [
+            {
+                "name": "NB_Gold_Build",
+                "type": "DatabricksNotebook",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.01:00:00",
+                    "retry": 2,
+                    "retryIntervalInSeconds": 60
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/bankpulse/gold/nb_gold_build",
+                    "baseParameters": {
+                        "batch_id": {
+                            "value": "@pipeline().parameters.batch_id",
+                            "type": "Expression"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureDatabricks",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "annotations": ["Gold", "StarSchema", "KPIs"]
+    }
+}

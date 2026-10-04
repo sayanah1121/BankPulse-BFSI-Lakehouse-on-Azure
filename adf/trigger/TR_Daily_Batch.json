@@ -1,0 +1,28 @@
+{
+    "name": "TR_Daily_Batch",
+    "type": "Microsoft.DataFactory/factories/triggers",
+    "properties": {
+        "description": "Daily batch trigger scheduled at 02:00 IST for BankPulse overnight processing",
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T20:30:00Z",
+                "timeZone": "UTC",
+                "schedule": {
+                    "hours": [20],
+                    "minutes": [30]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "PL_Master",
+                    "type": "PipelineReference"
+                }
+            }
+        ]
+    }
+}

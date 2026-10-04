@@ -1,0 +1,11 @@
+{
+    "name": "LS_ADLSGen2",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "description": "ADLS Gen2 Linked Service using Managed Identity for Medallion storage",
+        "type": "AzureBlobFS",
+        "typeProperties": {
+            "url": "https://stbankpulse.dfs.core.windows.net"
+        }
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "name": "DS_SQL_Generic",
+    "type": "Microsoft.DataFactory/factories/datasets",
+    "properties": {
+        "description": "Generic parameterized Azure SQL Dataset for metadata-driven ingestion",
+        "linkedServiceName": {
+            "referenceName": "LS_AzureSQL",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "SchemaName": {
+                "type": "string",
+                "defaultValue": "src"
+            },
+            "TableName": {
+                "type": "string"
+            }
+        },
+        "type": "AzureSqlTable",
+        "schema": [],
+        "typeProperties": {
+            "schema": {
+                "value": "@dataset().SchemaName",
+                "type": "Expression"
+            },
+            "table": {
+                "value": "@dataset().TableName",
+                "type": "Expression"
+            }
+        }
+    }
+}

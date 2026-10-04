@@ -1,0 +1,29 @@
+{
+    "name": "DS_Parquet_Landing",
+    "type": "Microsoft.DataFactory/factories/datasets",
+    "properties": {
+        "description": "Generic parameterized Parquet Dataset in landing container",
+        "linkedServiceName": {
+            "referenceName": "LS_ADLSGen2",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "DirectoryPath": {
+                "type": "string"
+            }
+        },
+        "type": "Parquet",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobFSLocation",
+                "fileSystem": "landing",
+                "folderPath": {
+                    "value": "@dataset().DirectoryPath",
+                    "type": "Expression"
+                }
+            },
+            "compressionCodec": "snappy"
+        },
+        "schema": []
+    }
+}

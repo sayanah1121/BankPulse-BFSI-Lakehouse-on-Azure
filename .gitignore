@@ -1,0 +1,45 @@
+# Python & virtual environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Jupyter & Databricks
+.ipynb_checkpoints
+*.dbc
+*.dbfs
+
+# Spark & Delta Lake local files
+spark-warehouse/
+metastore_db/
+derby.log
+*.tmp
+.ivy2/
+
+# Local data & lake storage containers (when running simulations locally)
+data/
+landing/
+bronze/
+silver/
+gold/
+quarantine/
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test reports
+.pytest_cache/
+.coverage
+htmlcov/

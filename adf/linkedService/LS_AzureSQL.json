@@ -1,0 +1,19 @@
+{
+    "name": "LS_AzureSQL",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "description": "Azure SQL Database Linked Service connecting to bankpulse_db via Key Vault secret",
+        "type": "AzureSqlDatabase",
+        "typeProperties": {
+            "connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=sql-bankpulse.database.windows.net;Initial Catalog=bankpulse_db;User ID=sqladmin",
+            "password": {
+                "type": "AzureKeyVaultSecret",
+                "store": {
+                    "referenceName": "LS_KeyVault",
+                    "type": "LinkedServiceReference"
+                },
+                "secretName": "sql-admin-password"
+            }
+        }
+    }
+}

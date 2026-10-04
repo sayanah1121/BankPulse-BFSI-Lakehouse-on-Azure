@@ -1,0 +1,11 @@
+{
+    "name": "LS_KeyVault",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "description": "Azure Key Vault Linked Service for storing database credentials and secrets",
+        "type": "AzureKeyVault",
+        "typeProperties": {
+            "baseUrl": "https://kv-bankpulse.vault.azure.net/"
+        }
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "name": "DS_SQL_Gold",
+    "type": "Microsoft.DataFactory/factories/datasets",
+    "properties": {
+        "description": "Generic parameterized Azure SQL Dataset for Gold serving tables",
+        "linkedServiceName": {
+            "referenceName": "LS_AzureSQL",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "TableName": {
+                "type": "string"
+            }
+        },
+        "type": "AzureSqlTable",
+        "schema": [],
+        "typeProperties": {
+            "schema": "gold",
+            "table": {
+                "value": "@dataset().TableName",
+                "type": "Expression"
+            }
+        }
+    }
+}

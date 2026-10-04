@@ -1,0 +1,30 @@
+{
+    "name": "LS_AzureDatabricks",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "description": "Azure Databricks Linked Service using single-node auto-terminating job cluster",
+        "type": "AzureDatabricks",
+        "typeProperties": {
+            "domain": "https://adb-bankpulse.azuredatabricks.net",
+            "accessToken": {
+                "type": "AzureKeyVaultSecret",
+                "store": {
+                    "referenceName": "LS_KeyVault",
+                    "type": "LinkedServiceReference"
+                },
+                "secretName": "databricks-pat-token"
+            },
+            "newClusterNodeType": "Standard_DS3_v2",
+            "newClusterNumOfWorkers": "0",
+            "newClusterSparkConf": {
+                "spark.master": "local[*]",
+                "spark.databricks.cluster.profile": "singleNode"
+            },
+            "newClusterSparkEnvVars": {
+                "PYSPARK_PYTHON": "/databricks/python3/bin/python3"
+            },
+            "newClusterVersion": "13.3.x-scala2.12",
+            "newClusterInitScripts": []
+        }
+    }
+}

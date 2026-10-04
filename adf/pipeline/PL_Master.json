@@ -1,0 +1,153 @@
+{
+    "name": "PL_Master",
+    "type": "Microsoft.DataFactory/factories/pipelines",
+    "properties": {
+        "description": "Master Orchestrator: Ingests 12 BFSI entities, executes Silver & Gold pipelines, and serves KPIs to Azure SQL",
+        "activities": [
+            {
+                "name": "Set_Batch_ID",
+                "type": "SetVariable",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "batch_id",
+                    "value": {
+                        "value": "@formatDateTime(utcnow(), 'yyyyMMddHHmmss')",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Lookup_Active_Configs",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Set_Batch_ID",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 2,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "SqlSource",
+                        "sqlReaderStoredProcedureName": "meta.usp_get_active_configs"
+                    },
+                    "dataset": {
+                        "referenceName": "DS_SQL_Generic",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "SchemaName": "meta",
+                            "TableName": "pipeline_config"
+                        }
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "ForEach_Entity",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup_Active_Configs",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Lookup_Active_Configs').output.value",
+                        "type": "Expression"
+                    },
+                    "isSequential": false,
+                    "batchCount": 4,
+                    "activities": [
+                        {
+                            "name": "Execute_PL_Ingest_Entity",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "PL_Ingest_Entity",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "config": {
+                                        "value": "@item()",
+                                        "type": "Expression"
+                                    },
+                                    "batch_id": {
+                                        "value": "@variables('batch_id')",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Execute_PL_Build_Gold",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "ForEach_Entity",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PL_Build_Gold",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "batch_id": {
+                            "value": "@variables('batch_id')",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Execute_PL_Serve_To_SQL",
+                "type": "ExecutePipeline",
+                "dependsOn": [
+                    {
+                        "activity": "Execute_PL_Build_Gold",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "pipeline": {
+                        "referenceName": "PL_Serve_To_SQL",
+                        "type": "PipelineReference"
+                    },
+                    "waitOnCompletion": true,
+                    "parameters": {
+                        "batch_id": {
+                            "value": "@variables('batch_id')",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ],
+        "variables": {
+            "batch_id": {
+                "type": "String"
+            }
+        },
+        "annotations": ["BFSI", "Lakehouse", "Master"]
+    }
+}

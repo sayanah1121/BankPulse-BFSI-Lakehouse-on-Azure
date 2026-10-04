@@ -1,0 +1,199 @@
+{
+    "name": "PL_Ingest_Entity",
+    "type": "Microsoft.DataFactory/factories/pipelines",
+    "properties": {
+        "description": "Child Pipeline: Ingests, cleans, masks PII, quarantines, and merges a single entity",
+        "parameters": {
+            "config": {
+                "type": "object"
+            },
+            "batch_id": {
+                "type": "string"
+            }
+        },
+        "activities": [
+            {
+                "name": "Log_Start",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.00:05:00",
+                    "retry": 1
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "meta.usp_log_start",
+                    "storedProcedureParameters": {
+                        "batch_id": { "value": "@pipeline().parameters.batch_id", "type": "String" },
+                        "adf_run_id": { "value": "@pipeline().RunId", "type": "String" },
+                        "config_id": { "value": "@pipeline().parameters.config.config_id", "type": "Int32" },
+                        "entity_name": { "value": "@pipeline().parameters.config.entity_name", "type": "String" },
+                        "layer": { "value": "BRONZE", "type": "String" },
+                        "watermark_from": { "value": "@pipeline().parameters.config.last_watermark", "type": "DateTime" }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "If_SQL_Source",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Log_Start",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@equals(pipeline().parameters.config.source_type, 'SQL')",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Copy_SQL_To_Landing_Parquet",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "0.00:15:00",
+                                "retry": 2,
+                                "retryIntervalInSeconds": 30
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderQuery": {
+                                        "value": "@if(equals(pipeline().parameters.config.load_type, 'INCREMENTAL'), concat('SELECT * FROM ', pipeline().parameters.config.source_schema, '.', pipeline().parameters.config.source_object, ' WHERE ', pipeline().parameters.config.watermark_column, ' > ISNULL(''', pipeline().parameters.config.last_watermark, ''', ''1900-01-01'')'), concat('SELECT * FROM ', pipeline().parameters.config.source_schema, '.', pipeline().parameters.config.source_object))",
+                                        "type": "Expression"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "ParquetSink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSWriteSettings"
+                                    },
+                                    "formatSettings": {
+                                        "type": "ParquetWriteSettings"
+                                    }
+                                },
+                                "enableStaging": false
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "DS_SQL_Generic",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "SchemaName": "@pipeline().parameters.config.source_schema",
+                                        "TableName": "@pipeline().parameters.config.source_object"
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "DS_Parquet_Landing",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "DirectoryPath": "@concat(pipeline().parameters.config.source_system, '/', pipeline().parameters.config.entity_name, '/load_date=', formatDateTime(utcnow(), 'yyyy-MM-dd'))"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "NB_Bronze_Load",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "If_SQL_Source",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:30:00",
+                    "retry": 2,
+                    "retryIntervalInSeconds": 30
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/bankpulse/bronze/nb_bronze_load",
+                    "baseParameters": {
+                        "entity": { "value": "@pipeline().parameters.config.entity_name", "type": "Expression" },
+                        "load_type": { "value": "@pipeline().parameters.config.load_type", "type": "Expression" },
+                        "batch_id": { "value": "@pipeline().parameters.batch_id", "type": "Expression" },
+                        "source_system": { "value": "@pipeline().parameters.config.source_system", "type": "Expression" },
+                        "watermark_column": { "value": "@pipeline().parameters.config.watermark_column", "type": "Expression" }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureDatabricks",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "NB_Silver_Transform",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "NB_Bronze_Load",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:30:00",
+                    "retry": 2,
+                    "retryIntervalInSeconds": 30
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/bankpulse/silver/nb_silver_transform",
+                    "baseParameters": {
+                        "entity": { "value": "@pipeline().parameters.config.entity_name", "type": "Expression" },
+                        "batch_id": { "value": "@pipeline().parameters.batch_id", "type": "Expression" },
+                        "primary_keys": { "value": "@pipeline().parameters.config.primary_keys", "type": "Expression" },
+                        "pii_columns": { "value": "@coalesce(pipeline().parameters.config.pii_columns, '')", "type": "Expression" },
+                        "pii_method": { "value": "@coalesce(pipeline().parameters.config.pii_method, '')", "type": "Expression" },
+                        "dq_ruleset": { "value": "@pipeline().parameters.config.dq_ruleset", "type": "Expression" },
+                        "watermark_column": { "value": "@coalesce(pipeline().parameters.config.watermark_column, '')", "type": "Expression" }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureDatabricks",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Update_Watermark",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "NB_Silver_Transform",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:05:00",
+                    "retry": 2
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "meta.usp_update_watermark",
+                    "storedProcedureParameters": {
+                        "entity_name": { "value": "@pipeline().parameters.config.entity_name", "type": "String" },
+                        "new_watermark": { "value": "@activity('NB_Silver_Transform').output.runOutput.max_watermark", "type": "DateTime" }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "LS_AzureSQL",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "annotations": ["Entity", "Ingest", "Bronze", "Silver"]
+    }
+}
