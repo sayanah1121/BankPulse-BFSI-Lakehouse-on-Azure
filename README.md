@@ -395,22 +395,3 @@ pytest -v
 
 ---
 
-## 12. Interview & Resume Highlights
-
-### Bullet Points for Resume
-* **Engineered a Metadata-Driven Lakehouse Architecture on Azure:** Built a parameter-driven ADF and Databricks pipeline processing **12 distinct BFSI entities** via a centralized Azure SQL control table, eliminating 12 redundant ingestion pipelines.
-* **Implemented Medallion Architecture on Delta Lake:** Processed high-volume payment streams (Core Banking, Cards, and UPI) using incremental high-watermark queries and PySpark `MERGE` upserts, reducing re-processed daily partition volume by over **85%**.
-* **Constructed Automated Data Quality & Quarantine Engine:** Evaluated **28+ dynamic rules** (NOT_NULL, UNIQUE, RANGE, REGEX, DATE_NOT_FUTURE) across 3.6K+ records; isolated anomalies with zero pipeline crashes and achieved 100% layer reconciliation (`Bronze = Silver + Quarantine`).
-* **Enforced DPDP PII Masking & Salted Pseudonymization:** Secured customer sensitive fields (PAN, mobile, card, account, UPI VPAs) using salted SHA-256 hashing and trailing-4 masking with secret keys managed through Azure Key Vault.
-* **Automated BFSI Regulatory & Risk Analytics:** Formulated automated Gold layer calculations for RBI credit classification, delivering real-time Gross NPA ratio (**9.51%**), Provision Coverage Ratio (**18.81%**), and rule-based fraud detection to executive Power BI dashboards.
-
-### Common Interview Q&A
-
-**Q: Why choose a metadata-driven approach over standard ADF copy pipelines?**  
-> *A:* In commercial banking, entities evolve constantly. Instead of modifying, testing, and deploying pipeline code every time an attribute or table changes, BankPulse decouples logic from execution. Onboarding a table is a single `INSERT` statement into `meta.pipeline_config`.
-
-**Q: How is idempotency guaranteed when re-running a failed batch?**  
-> *A:* Bronze records carry a unique `_batch_id`. Silver uses Delta Lake `MERGE` on primary keys, checking a computed SHA-256 `_row_hash` to only update when data has genuinely changed. Re-running a batch overwrites/updates identical states without generating duplicate rows.
-
-**Q: How do you handle late-arriving financial transactions?**  
-> *A:* The pipeline config supports `watermark_overlap_minutes`. Incremental queries look back 30–60 minutes prior to `last_watermark`. The Delta `MERGE` statement ensures that previously processed records in that overlap window are cleanly matched without creating duplicates.
